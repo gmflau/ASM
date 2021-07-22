@@ -205,6 +205,7 @@ kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n default
 
 
 #### 10. Create a service access control policy
+The following policy is to block access from resources running in non "redis" namespace to the REDB
 ```
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
