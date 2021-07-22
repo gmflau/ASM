@@ -39,7 +39,18 @@ Please make sure you have all the required [GCP IAM permissions](https://cloud.g
 ```
 kubectl create namespace redis
 kubectl config set-context --current --namespace=redis
-
+```
+Set up auto proxy sidecar injection for "redis" ns:  
+```
+kubectl -n istio-system get pods -l app=istiod --show-labels
+``
+Create an asm label for "redis" namespace:
+```
+kubectl label namespace redis istio-injection- istio.io/rev=asm-1102-3 --overwrite
+```  
+```
+Then install the Redis Enterprise Operator bundle:  
+```
 kubectl apply -f https://raw.githubusercontent.com/RedisLabs/redis-enterprise-k8s-docs/v6.0.20-12/bundle.yaml
 ```  
 
@@ -132,15 +143,26 @@ EOF
 ```
 
 
-#### 7. Copy REDB secret from "redis" ns to "default" ns
+#### 7. Create a namespace called "gilbert"
 ```
-kubectl get secret redb-redis-enterprise-database -n redis  -o yaml | grep -v '^\s*namespace:\s' | kubectl apply --namespace=default -f -
+kubectl create ns gilbert
+kubectl config set-context --current --namespace=gilbert
+```
+Create an asm label for "gilbert" namespace:
+```
+kubectl label namespace gilbert istio-injection- istio.io/rev=asm-1102-3 --overwrite
 ```
 
 
-#### 8. Deploy redisbank in "default" namespace
+#### 8. Copy REDB secret from "redis" ns to "gilbert" ns
 ```
-kubectl config set-context --current --namespace=redis
+kubectl get secret redb-redis-enterprise-database -n redis  -o yaml | grep -v '^\s*namespace:\s' | kubectl apply --namespace=gilbert -f -
+```
+
+
+#### 9. Deploy redisbank in "default" namespace
+```
+kubectl config set-context --current --namespace=gilbert
 
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
@@ -198,15 +220,16 @@ EOF
 ```
 
 
-#### 9. Verify redisbank app in default ns can connect to the REDB
+#### 10. Verify redisbank app in "gilbert" namespace can connect to the REDB
 ```
-kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n default
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
 ```
 
 
-#### 10. Create a service access control policy
+#### 11. Create a service access control policy
 The following policy is to block access from resources running in non "redis" namespace to the REDB
 ```
+kubectl apply -f - <<EOF
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -221,12 +244,84 @@ spec:
  - from:
    - source:
        notNamespaces: ["redis"]
+EOF
 ```
 
 
-#### 11. Verify redisbank-deployment-xxxx pod no longer connecting to the REDB
+#### 12. Verify redisbank-deployment-xxxx pod in "gilbert" namespace can no longer connect to the REDB
 ```
-kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n default
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
+```
+
+
+#### 13. Create a serivce access control policy to block access from resources running in non "gilbert" namespace to the REDB
+First remove the policy from step 10:  
+```
+kubectl delete AuthorizationPolicy redis-enterprise-database-headless-deny -n redis
+```
+```
+kubectl apply -f - <<EOF
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+ name: redis-enterprise-database-headless-deny
+ namespace: redis
+spec:
+ selector:
+   matchLabels:
+     app: redis-enterprise
+ action: DENY
+ rules:
+ - from:
+   - source:
+       notNamespaces: ["gilbert"]
+EOF
+```
+
+#### 14. Verify redisbank-deployment-xxxx pod in "redis" namespace can no longer connect to the REDB
+The redisbank-deployment can still connect to the REDB:  
+```
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
+```
+The redisbank-deployment can no longer connect to the REDB:
+```
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n redis
+```
+
+
+#### 15. Create a serivce access control policy to block access from resources running not in "gilbert" or "redis" namespaces to the REDB in "redis namespace
+First remove the policy from step 10:
+```
+kubectl delete AuthorizationPolicy redis-enterprise-database-headless-deny -n redis
+```
+```
+kubectl apply -f - <<EOF
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+ name: redis-enterprise-database-headless-deny
+ namespace: redis
+spec:
+ selector:
+   matchLabels:
+     app: redis-enterprise
+ action: DENY
+ rules:
+ - from:
+   - source:
+       notNamespaces: ["gilbert,redis"]
+EOF
+```
+
+
+#### 16. Verify redisbank-deployment-xxxx pod in "redis" and "gilbert" namespaces can both connect to the REDB
+The redisbank-deployment in "gilbert" namespace can connect to the REDB:  
+```
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
+```
+The redisbank-deployment in "redis" namespace can connect to the REDB:
+```
+kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n redis
 ```
 
 
