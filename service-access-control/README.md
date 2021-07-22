@@ -253,11 +253,7 @@ kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
 ```
 
 
-#### 13. Create a serivce access control policy to block access from resources running in non "gilbert" namespace to the REDB
-First remove the policy from step 10:  
-```
-kubectl delete AuthorizationPolicy redis-enterprise-database-headless-deny -n redis
-```
+#### 13. Update the serivce access control policy to block access from resources running in non "gilbert" namespace to the REDB
 ```
 kubectl apply -f - <<EOF
 apiVersion: security.istio.io/v1beta1
@@ -278,21 +274,17 @@ EOF
 ```
 
 #### 14. Verify redisbank-deployment-xxxx pod in "redis" namespace can no longer connect to the REDB
-The redisbank-deployment can still connect to the REDB:  
+The redisbank-deployment in "gilbert" namespace can still connect to the REDB:  
 ```
 kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n gilbert
 ```
-The redisbank-deployment can no longer connect to the REDB:
+The redisbank-deployment in "redis" namespace can no longer connect to the REDB:
 ```
 kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n redis
 ```
 
 
-#### 15. Create a serivce access control policy to block access from resources running not in "gilbert" or "redis" namespaces to the REDB in "redis namespace
-First remove the policy from step 10:
-```
-kubectl delete AuthorizationPolicy redis-enterprise-database-headless-deny -n redis
-```
+#### 15. Update the serivce access control policy to block access from resources running not in "gilbert" or "redis" namespaces to the REDB in "redis namespace
 ```
 kubectl apply -f - <<EOF
 apiVersion: security.istio.io/v1beta1
@@ -322,6 +314,4 @@ The redisbank-deployment in "redis" namespace can connect to the REDB:
 ```
 kubectl logs -f redisbank-deployment-<xxxxxxxxxxxxxx> -n redis
 ```
-
-
 
