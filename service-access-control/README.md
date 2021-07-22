@@ -48,7 +48,6 @@ Create an asm label for "redis" namespace:
 ```
 kubectl label namespace redis istio-injection- istio.io/rev=asm-1102-3 --overwrite
 ```  
-```
 Then install the Redis Enterprise Operator bundle:  
 ```
 kubectl apply -f https://raw.githubusercontent.com/RedisLabs/redis-enterprise-k8s-docs/v6.0.20-12/bundle.yaml
