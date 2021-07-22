@@ -44,7 +44,7 @@ Set up auto proxy sidecar injection for "redis" ns:
 ```
 kubectl -n istio-system get pods -l app=istiod --show-labels
 ```
-Create an asm label for "redis" namespace:
+Create an asm label for "redis" namespace for auto sidecar proxy injection:
 ```
 kubectl label namespace redis istio-injection- istio.io/rev=asm-1102-3 --overwrite
 ```  
@@ -147,7 +147,7 @@ EOF
 kubectl create ns gilbert
 kubectl config set-context --current --namespace=gilbert
 ```
-Create an asm label for "gilbert" namespace:
+Create an asm label for "gilbert" namespace for auto sidecar proxy injection:
 ```
 kubectl label namespace gilbert istio-injection- istio.io/rev=asm-1102-3 --overwrite
 ```
