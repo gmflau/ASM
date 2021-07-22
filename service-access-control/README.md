@@ -43,7 +43,7 @@ kubectl config set-context --current --namespace=redis
 Set up auto proxy sidecar injection for "redis" ns:  
 ```
 kubectl -n istio-system get pods -l app=istiod --show-labels
-``
+```
 Create an asm label for "redis" namespace:
 ```
 kubectl label namespace redis istio-injection- istio.io/rev=asm-1102-3 --overwrite
