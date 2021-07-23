@@ -78,6 +78,7 @@ metadata:
   name: redis-enterprise-database
 spec:
   memorySize: 100MB
+EOF
 ```  
 
 
